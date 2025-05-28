@@ -1,39 +1,49 @@
 #!/bin/bash
 
-### Mise à jour du système
-sudo apt update
-sudo apt full-upgrade -y
+# Configurer le sous-module si nécessaire
+if [ ! -d "libfreenect" ]; then
+    echo "Téléchargement de libfreenect..."
+    git submodule init
+    git submodule update
+fi
 
-### Installation des dépendances C/C++
+# Installer les dépendances
+sudo apt update
 sudo apt install -y \
     cmake \
     libusb-1.0-0-dev \
-    libxmu-dev \
-    libxi-dev \
-    freeglut3-dev \
-    libglfw3-dev \
     libturbojpeg0-dev \
-    libudev-dev \
     python3-dev \
     python3-pip \
     python3-numpy
 
-### Compilation de libfreenect
+# Compiler libfreenect
 cd libfreenect
 mkdir -p build
 cd build
-cmake .. -DBUILD_EXAMPLES=OFF -DBUILD_FAKENECT=OFF -DBUILD_C_SYNC=ON -DBUILD_PYTHON3=ON
-make
+cmake .. -DBUILD_EXAMPLES=OFF -DBUILD_FAKENECT=ON
+make -j$(nproc)
 sudo make install
+
+# Installer les bindings Python
 cd ../wrappers/python
 sudo python3 setup.py install
-cd ../../../
+cd ../../..
 
-### Règles udev
-sudo cp libfreenect/platform/linux/udev/90-kinect.rules /etc/udev/rules.d/
-sudo udevadm control --reload-rules
+# Configurer les règles udev
+if [ -f "libfreenect/platform/linux/udev/90-kinect.rules" ]; then
+    sudo cp libfreenect/platform/linux/udev/90-kinect.rules /etc/udev/rules.d/
+    sudo udevadm control --reload-rules
+else
+    echo "AVERTISSEMENT: Fichier udev non trouvé!"
+fi
 
-### Installation des dépendances Python
-sudo pip3 install -r requirements.txt
+# Installer les dépendances Python
+if [ -f "requirements.txt" ]; then
+    sudo pip3 install -r requirements.txt
+else
+    echo "ERREUR: Fichier requirements.txt manquant!"
+    exit 1
+fi
 
 echo "Installation réussie! Redémarrez le système."
