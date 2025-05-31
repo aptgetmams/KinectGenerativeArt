@@ -1,56 +1,54 @@
 #!/bin/bash
 
-# Configurer le dépôt principal si nécessaire
 REPO_DIR="$HOME/KinectGenerativeArt"
+
+# Clonage manuel de libfreenect si absent
 if [ ! -d "$REPO_DIR/libfreenect" ]; then
-    echo "Téléchargement de libfreenect..."
     git clone https://github.com/OpenKinect/libfreenect.git "$REPO_DIR/libfreenect"
 fi
 
-# Installer les dépendances système
+# Dépôts manquants critiques
 sudo apt update && sudo apt install -y \
-    cmake \
     libusb-1.0-0-dev \
     libturbojpeg0-dev \
-    python3-dev \
-    python3-pip \
-    python3-numpy \
-    libglfw3-dev
+    libglfw3-dev \
+    gcc-arm-linux-gnueabihf
 
-# Compiler libfreenect
+# Compilation principale avec cache
 cd "$REPO_DIR/libfreenect" || exit 1
-mkdir -p build
-cd build || exit 1
-cmake -DBUILD_EXAMPLES=OFF -DBUILD_FAKENECT=ON ..
-if ! make -j$(nproc); then
-    echo "Échec de la compilation - Vérifiez les logs"
-    exit 1
-fi
+
+# Configuration Cmake optimisée pour ARM
+mkdir -p build && cd build
+cmake \
+  -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc \
+  -DENABLE_CXX11=OFF \
+  -DBUILD_EXAMPLES=OFF \
+  -DBUILD_OPENNI2_DRIVER=OFF ..
+
+make -j$(nproc)
+[ $? -ne 0 ] && echo "Échec compilation libfreenect!" && exit 1
 sudo make install
 
-# Installer les bindings Python
+# Installation bindings Python
 cd ../wrappers/python || exit 1
+CFLAGS="-I$REPO_DIR/libfreenect/include -I/usr/include/libusb-1.0" \
+LDFLAGS="-L/usr/lib/arm-linux-gnueabihf -L/usr/local/lib" \
 sudo python3 setup.py install
 
-# Configurer les règles USB
-UDEV_RULES="platform/linux/udev/90-kinect.rules"
-if [ -f "$UDEV_RULES" ]; then
-    sudo cp $UDEV_RULES /etc/udev/rules.d/
+# Gestion udev
+if [ -f "../platform/linux/udev/90-kinect.rules" ]; then
+    sudo cp "../platform/linux/udev/90-kinect.rules" /etc/udev/rules.d/
     sudo udevadm control --reload-rules
-else
-    echo "AVERTISSEMENT: Règles udev manquantes - Droits USB nécessaires!"
 fi
 
-# Installer les dépendances Python
-cd "$REPO_DIR" || exit 1
-if [ -f "requirements.txt" ]; then
-    sudo pip3 install -r requirements.txt
-else
-    echo "ERREUR: Fichier requirements.txt manquant!"
-    echo "Créez-le avec :"
-    echo "pygame==2.1.3" > requirements.txt
-    echo "numpy==1.22.4" >> requirements.txt
-    exit 1
-fi
+# Configuration Python
+cd "$REPO_DIR"
+cat << EOF > requirements.txt
+numpy==1.22.3
+pygame==2.1.2
+opencv-python-headless==4.5.5.64
+EOF
 
-echo "Installation réussie! Redémarrez avant utilisation."
+sudo pip3 install -r requirements.txt
+
+echo "Installation validée! Branchez la Kinect et redémarrez."
