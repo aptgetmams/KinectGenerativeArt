@@ -5,6 +5,17 @@ sudo apt update && sudo apt install -y \
     python3-numpy \
     python3-pyopengl
 
+sudo apt install -y libusb-1.0-0-dev libgl1-mesa-dev python3-opencv
+
+sudo apt install -y \ 
+    libopencv-dev 
+    \ python3-dev 
+    \ python3-pybind11 
+    \ cmake 
+    \ freeglut3-dev
+    \ libgl1-mesa-dev 
+    \ ninja-build
+
 # Compilation optimisée de libfreenect
 git clone https://github.com/OpenKinect/libfreenect
 cd libfreenect
