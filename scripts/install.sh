@@ -1,20 +1,24 @@
 #!/bin/bash
+sudo apt update && sudo apt full-upgrade -y 
+
 sudo apt update && sudo apt install -y \
     libusb-1.0-0-dev \
     python3-opencv \
     python3-numpy \
     python3-pyopengl
 
+sudo apt install git cmake build-essential libusb-1.0-0-dev libturbojpeg0-dev
+
 sudo apt install -y libusb-1.0-0-dev libgl1-mesa-dev python3-opencv
 
 sudo apt install -y \ 
-    libopencv-dev 
-    \ python3-dev 
-    \ python3-pybind11 
-    \ cmake 
-    \ freeglut3-dev
-    \ libgl1-mesa-dev 
-    \ ninja-build
+    libopencv-dev \ 
+    python3-dev \ 
+    python3-pybind11 \ 
+    cmake \ 
+    freeglut3-dev \ 
+    libgl1-mesa-dev \ 
+    ninja-build
 
 # Compilation optimisée de libfreenect
 git clone https://github.com/OpenKinect/libfreenect
